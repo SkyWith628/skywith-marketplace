@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "skywith-local",
-  "description": "SkyWith628 개인 작업 스킬 마켓플레이스 (OneDrive 워크스페이스 동기화본)",
+  "description": "SkyWith628 개인 작업 규칙·스킬 마켓플레이스 (GitHub 정본)",
   "owner": {
     "name": "SkyWith628"
   },
