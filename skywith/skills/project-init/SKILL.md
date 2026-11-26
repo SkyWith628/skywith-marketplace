@@ -59,6 +59,6 @@ build/
 - `git init -b main`을 실행한다.
 
 ## 3. 마무리
-- 원격: URL이 있으면 `git remote add origin <url>`을 **제안**한다. 새로 만들 때는 **private이 기본**이다 — `gh repo create <owner>/<name> --private --source . --remote origin`. public은 사용자가 명시했을 때만 제안한다. 모두 사용자 확인 후 실행한다(푸시 전 공개 여부 확인은 `shimai` 규칙과 같다).
+- 원격: URL이 있으면 `git remote add origin <url>`을 **제안**한다. 새로 만들 때는 **private이 기본**이다 — `gh repo create <owner>/<name> --private --source . --remote origin`. public은 사용자가 명시했을 때만 제안한다. 모두 사용자 확인 후 실행한다(푸시 전 공개 여부 확인은 `shimai` 규칙과 같다). 레포를 만든 직후 `gh repo view <owner>/<name> --json visibility`로 의도한 공개 여부(기본 PRIVATE)인지 확인하고 결과를 보고한다.
 - 생성한 파일 목록과 CLAUDE.md의 `mode:` 값을 보고하고, 다음 작업으로 `dgaja` 사용을 안내한다.
 - 첫 커밋은 사용자가 요청할 때만.
