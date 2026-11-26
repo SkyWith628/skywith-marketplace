@@ -19,9 +19,19 @@ gh auth setup-git
   },
   "enabledPlugins": {
     "skywith@skywith-local": true
+  },
+  "env": {
+    "HANDOFF_DIR": "<iCloud 폴더>/_handoff"
   }
 }
 ```
+`HANDOFF_DIR`는 `시마이`·`드가자`가 인수인계 파일을 읽고 쓰는 폴더입니다. 기기마다 값이 다릅니다(`settings.json`은 동기화되지 않음).
+| 기기 | 값 |
+|---|---|
+| Windows | `C:\\Users\\<사용자>\\iCloudDrive\\_handoff` (JSON 안에서는 `\\`) |
+| Mac | `/Users/<사용자>/Library/Mobile Documents/com~apple~CloudDocs/_handoff` |
+
+설정하지 않으면 스킬이 iCloud 기본 위치를 자동으로 찾습니다.
 Claude를 한 번 실행하면 마켓플레이스를 받고 플러그인을 설치합니다. 같은 결과를 명령으로도 낼 수 있습니다.
 ```bash
 claude plugin marketplace add SkyWith628/skywith-marketplace

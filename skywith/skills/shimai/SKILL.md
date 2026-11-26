@@ -35,8 +35,9 @@ description: 사용자가 "시마이"(또는 "시마이!", "ㅅㅁㅇ", "오늘 
 
 ## 4. 인수인계 남기기 — 다음 `드가자`의 시작점
 다음 세션(다른 기기 포함)이 `드가자`로 바로 이어갈 수 있게 **인수인계 한 파일을 갱신(교체)**한다. 마무리의 일부이고, 레포 밖에 쓰므로 커밋과 무관하다. 누적 로그가 아니다 — 매번 현재 상태로 덮어쓰고 40줄 이내로 둔다.
-- **파일:** iCloud 루트의 `_handoff/<프로젝트>.md`. 프로젝트 이름은 `git remote get-url origin`의 레포명(없으면 폴더명). iCloud 폴더는 Windows `~/iCloudDrive`, Mac `~/Library/Mobile Documents/com~apple~CloudDocs`에서 찾는다.
-  - 폴더가 없으면 사용자에게 경로를 묻는다. 그래도 없으면 자동 메모리 `handoff.md`(type: project, `MEMORY.md`에 한 줄)에 쓰고 "이 기기에서만 이어갈 수 있다"고 알린다.
+- **파일:** `<인수인계 폴더>/<프로젝트>.md`. 프로젝트 이름은 `git remote get-url origin`의 레포명(없으면 폴더명).
+  - **인수인계 폴더**는 환경변수 `HANDOFF_DIR`(PowerShell `$env:HANDOFF_DIR`, Bash `$HANDOFF_DIR`)이다. 없으면 iCloud 루트의 `_handoff/`를 찾는다(Windows `~/iCloudDrive`, Mac `~/Library/Mobile Documents/com~apple~CloudDocs`). 이 경우 "`~/.claude/settings.json`의 `env`에 `HANDOFF_DIR`를 설정하면 경로가 고정된다"고 한 줄 알린다.
+  - 인수인계 폴더가 없으면 만든다. 상위 폴더(iCloud 루트 등)까지 없으면 만들지 말고 사용자에게 경로를 묻는다. 그래도 없으면 자동 메모리 `handoff.md`(type: project, `MEMORY.md`에 한 줄)에 쓰고 "이 기기에서만 이어갈 수 있다"고 알린다.
   - 레포 안에 두지 않으므로 공개 레포여도 노출 위험이 없다. 레포에 옛 `인수인계.md`가 있으면 더 이상 갱신하지 않고 옛 파일이라고 알린다.
   - 쓰기 전에 같은 폴더에 `<이름> (1).md` 충돌본이 있으면(두 기기가 동시에 쓴 흔적) 알리고, 내용을 합친 뒤 지우는 것은 사용자 확인을 받는다.
 - **푸시 상태 수집:** `git fetch --quiet`(오프라인이면 건너뜀) 후 `git rev-parse --short origin/<브랜치>`, `git rev-list --count @{u}..HEAD`(미푸시 커밋), `git status --short`의 줄 수(미커밋). upstream이 없으면 `origin: 없음`.
@@ -81,7 +82,7 @@ description: 사용자가 "시마이"(또는 "시마이!", "ㅅㅁㅇ", "오늘 
 ➡️ 다음 작업 (추천순)
 1. ...
 
-🤝 인수인계: <iCloud 경로 또는 메모리 항목> 갱신함 (레포 밖) · origin <해시> · 미푸시 <N> — 위 📍🔧➡️가 다음 `드가자`의 시작점
+🤝 인수인계: <인수인계 파일 경로 또는 메모리 항목> 갱신함 (레포 밖) · origin <해시> · 미푸시 <N> — 위 📍🔧➡️가 다음 `드가자`의 시작점
 
 📝 기록 갱신 제안
 - 메모리: ...
