@@ -195,7 +195,10 @@ export function classify(relPath, bytes, { themes } = {}) {
  * git is asked not to take optional locks, so even `git status` leaves the repo's own files alone.
  */
 export function gitRun(cwd, args) {
-  const pre = isUnattended() ? ['--no-optional-locks'] : [];
+  // core.quotepath=false: git otherwise prints non-ASCII paths (Korean, Japanese, accented…) as quoted octal
+  // escapes ("\352\262\260…"), so changed files from status/diff/log never match the map's real paths.
+  // [skywith patch] see UPSTREAM.md
+  const pre = ['-c', 'core.quotepath=false', ...(isUnattended() ? ['--no-optional-locks'] : [])];
   try {
     return { out: execFileSync('git', [...pre, '-C', cwd, ...args], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] }).trimEnd(), error: null };
   } catch (e) {
