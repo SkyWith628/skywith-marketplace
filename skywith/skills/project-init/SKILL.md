@@ -28,6 +28,7 @@ description: 아직 폴더가 없는 새 프로젝트를 만들 때 발동. 사�
 ├─ CLAUDE.md          # templates/CLAUDE.md 를 채움 (40줄 이내)
 ├─ README.md          # 제목 + 한 줄 정의만. 본문은 portfolio 스킬이 나중에 채움
 ├─ docs/decisions.md  # 결정 로그 (비어 있는 헤더만)
+├─ .claude/verify.json  # 검증 명령이 정해졌을 때만. 아래
 ├─ .gitattributes     # 아래. Windows·Mac 줄바꿈 차이로 가짜 변경이 생기는 것을 막는다
 └─ .gitignore         # 아래
 ```
@@ -36,6 +37,14 @@ description: 아직 폴더가 없는 새 프로젝트를 만들 때 발동. 사�
 * text=auto eol=lf
 *.sh text eol=lf
 ```
+`.claude/verify.json` — 턴을 끝내기 전에 skywith 훅이 돌리는 검증 명령이다. 코드가 바뀐 턴에만 돈다.
+```json
+{ "commands": ["<lint>", "<typecheck>"], "timeoutSec": 180 }
+```
+- 1번에서 받은 검증 명령 중 **빠른 것(수십 초 안)** 만 넣는다. 보통 lint·typecheck. 오래 걸리는 테스트·빌드는 넣지 않고 `CLAUDE.md`의 명령어에만 적는다.
+- Windows·Mac 양쪽에서 같은 문자열로 도는 명령만 넣는다(`.venv/bin/python` 같은 OS별 경로 금지 — `python -m ruff check .`, `npm run lint`처럼 쓴다).
+- 검증 명령이 "미정"이면 파일을 만들지 않고, 정해지면 만들자고 `CLAUDE.md`의 "다음"에 한 줄 남긴다.
+
 `.gitignore` (`!.env.example` 줄이 `.env.*`보다 **뒤**에 와야 템플릿 파일이 무시되지 않는다)
 ```
 .env
@@ -54,6 +63,8 @@ build/
 *.safetensors
 *.ckpt
 .DS_Store
+.claude/worktrees/
+.claude/settings.local.json
 ```
 - AI 프로젝트면 `ai-ml` / `llm-agent` 스킬의 파일 구조 절을 참고해 디렉터리를 제안만 한다 (사용자 확인 후 생성).
 - `git init -b main`을 실행한다.

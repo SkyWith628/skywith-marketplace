@@ -4,6 +4,7 @@
 - `rules/AGENTS.md` — 전역 규칙. 플러그인은 CLAUDE.md를 싣지 못하므로 `hooks/` 의 SessionStart 훅이 세션 시작(재개·compact 포함)마다 주입한다. 10,000자 이하로 유지한다.
 - `skills/` — 스킬. 호출명은 `skywith:<이름>`.
 - `agents/` — 서브에이전트 정의. 호출명은 `skywith:<이름>`.
+- `hooks/` — 규칙 주입 + 글로만 두면 안 지켜지는 규칙을 강제하는 훅.
 
 ## 에이전트
 | 이름 | 하는 일 | 모델 |
@@ -12,6 +13,25 @@
 | `verifier` | 타입체크·린트·테스트·빌드를 돌리고 실패만 요약 | haiku |
 
 플러그인 에이전트는 `permissionMode`·`hooks`·`mcpServers` 필드가 무시된다(공식 문서). 읽기 전용은 본문 지시와 도구 목록으로만 지킨다.
+
+## 훅
+| 파일 | 시점 | 동작 |
+|---|---|---|
+| `print-rules.js` | SessionStart | `rules/AGENTS.md`를 주입 |
+| `guard-bash.js` | PreToolUse(Bash) | 실행 전에 사용자에게 묻는다: force push, `reset --hard`, PUBLIC이거나 공개 여부를 확인 못 한 레포로의 push, 클라우드 폴더 안의 git 쓰기·패키지 설치·가상환경 생성, 비밀 파일 내용을 출력하는 명령 |
+| `guard-read.js` | PreToolUse(Read) | `.env`·`auth.json`·키 파일을 읽기 전에 묻는다(`.env.example` 등 견본은 제외) |
+| `verify-stop.js` | SessionStart, Stop | 프로젝트에 `.claude/verify.json`이 있으면, 세션 시작 뒤 작업 트리가 바뀐 경우에만 검증 명령을 돌린다. 실패하면 종료를 한 번 막는다 |
+
+`.claude/verify.json` (프로젝트별, 없으면 훅은 아무것도 안 한다):
+```json
+{ "commands": ["npm run typecheck", "npm test"], "timeoutSec": 180 }
+```
+- 같은 작업 트리 상태는 한 번만 검사한다. 실패를 알린 뒤 아무것도 바꾸지 않고 끝내면 통과시키므로 무한 루프가 없다.
+- git 레포가 아니면 검사하지 않는다.
+- 이 파일의 명령은 Claude가 턴을 끝낼 때 자동 실행된다. 믿을 수 없는 레포를 열 때는 이 파일을 먼저 확인한다.
+- 가드는 막지 않고 묻는다. 사람이 없는 실행(`claude -p`)에서는 묻는 것이 곧 거부다.
+- 가드는 완전한 셸 파서가 아니다. 스크립트 파일 안에서 실행되는 명령이나 `python -c`로 읽는 파일은 보지 못한다.
+- 테스트: `node --test tests/`
 
 ## 포함 스킬
 | 구분 | 스킬 |

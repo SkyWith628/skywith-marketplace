@@ -19,6 +19,7 @@ mode: work   <!-- work | study -->
 <typecheck>  # 타입 검사
 <build>      # 빌드
 ```
+턴 종료 전 자동 검증: `.claude/verify.json` (빠른 검사만)
 
 ## 구조 (코드에서 안 보이는 것만)
 - `<경로>`: <역할>
@@ -28,6 +29,7 @@ mode: work   <!-- work | study -->
 
 ## 함정 / 제약
 - <겪었거나 예상되는 함정과 이유>
+<!-- 특정 폴더에만 해당하는 함정이 10줄을 넘으면 `.claude/rules/<영역>.md`(frontmatter `paths:`)로 옮긴다. 그 폴더를 만질 때만 로드된다. -->
 
 ## 현재 단계
 - 지금: <단계>
