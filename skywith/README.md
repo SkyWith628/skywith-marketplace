@@ -10,7 +10,7 @@
 | 모드 | `work`, `study` |
 | 도메인 | `ai-ml`, `llm-agent`, `deploy` |
 | 워크플로 | `dgaja`(드가자), `shimai`(시마이), `portfolio`, `blog`, `project-init`, `agent-dashboard`(관제실) |
-| 외부 사본 | `stack-diagram`(스택 구조 그림, [caru-ini/stack-diagram](https://github.com/caru-ini/stack-diagram) v0.8.0, MIT) — 출처·갱신 방법은 폴더의 `UPSTREAM.md` |
+| 외부 사본 | `stack-diagram`(스택 구조 그림, [caru-ini/stack-diagram](https://github.com/caru-ini/stack-diagram) v0.8.0, MIT), `floorplan`(코드베이스 지도·Health check, [haydenschmitty/floorplan](https://github.com/haydenschmitty/floorplan) v0.11.0, MIT) — 출처·주의·갱신 방법은 각 폴더의 `UPSTREAM.md` |
 
 트리거 단어("드가자", "시마이" 등)는 각 스킬의 description으로 동작하므로 평소 말투 그대로 쓰면 된다.
 
