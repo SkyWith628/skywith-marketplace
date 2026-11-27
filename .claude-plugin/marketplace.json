@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "skywith",
-      "description": "모드(work/study)·도메인(ai-ml/llm-agent/deploy)·워크플로(드가자/시마이/포폴/블로그/새 프로젝트/관제실) 스킬 모음",
+      "description": "모드(work/study)·도메인(ai-ml/llm-agent/deploy)·워크플로(드가자/시마이/포폴/블로그/새 프로젝트/관제실)·스택 그림(stack-diagram) 스킬 모음",
       "source": "./skywith",
       "category": "development"
     }
