@@ -1,6 +1,7 @@
+<meta charset="utf-8">
 <title>에이전트 관제실</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="agent-ops-version" content="6">
+<meta name="agent-ops-version" content="7">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
@@ -126,8 +127,12 @@ svg.links{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
 .c-prog{display:flex;align-items:center;gap:8px}
 .bar{position:relative;flex:1;height:7px;background:var(--panel-2);overflow:hidden}
 .bar>i{position:absolute;inset:0 auto 0 0;background:var(--c);transition:width .35s ease-out}
+.bar>i{transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.card[data-st=working] .bar,.card[data-st=thinking] .bar,.card[data-st=waiting] .bar{background-image:repeating-linear-gradient(-45deg,transparent 0 4px,color-mix(in srgb,var(--c) 14%,transparent) 4px 8px);background-size:22px 22px;animation:stripes 1.2s linear infinite}
+.card[data-st=working] .bar>i,.card[data-st=thinking] .bar>i,.card[data-st=waiting] .bar>i{background-image:repeating-linear-gradient(-45deg,transparent 0 5px,rgba(255,255,255,.16) 5px 10px);background-size:28px 28px;animation:stripes 0.8s linear infinite}
+
 .card[data-st=done] .bar>i{background:var(--ok)} .card[data-st=error] .bar>i{background:var(--err)}
-.card[data-st=working] .bar>i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);background-size:50px 100%;background-repeat:no-repeat;animation:sweep 1.2s linear infinite}
+.card[data-st=working] .bar>i::after,.card[data-st=thinking] .bar>i::after,.card[data-st=waiting] .bar>i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);background-size:50px 100%;background-repeat:no-repeat;animation:sweep 1.2s linear infinite}
 .bar.indet>i{width:34%!important;background:color-mix(in srgb,var(--c) 70%,transparent);animation:indet 1.4s ease-in-out infinite}
 .c-pct{min-width:40px;text-align:right;font-variant-numeric:tabular-nums;font-size:11px}
 .c-now{display:flex;align-items:center;gap:2px;white-space:nowrap;overflow:hidden;min-width:0;font-size:11px}
@@ -264,7 +269,7 @@ svg.links{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
 @keyframes enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes pop{from{opacity:0;translate:0 6px}to{opacity:1;translate:0 0}}
 @keyframes flash{from{background:color-mix(in srgb,var(--k) 22%,transparent)}to{background:transparent}}
-@keyframes stripes{to{background-position:22px 0}}
+@keyframes stripes{to{background-position:28px 0}}
 
 @media (max-width:1000px){
   html,body{height:auto}
@@ -387,6 +392,7 @@ function upsertAgent(p, seq, t) {
   const wasActive = ACTIVE.has(a.status);
   if (has(ST_KO, p.status)) a.status = p.status;
   for (const k of ['progress', 'tokens', 'tools']) if (Number.isFinite(p[k])) a[k] = p[k];
+  if (Number.isFinite(p.progress) && p.progress > 0) a.progAt = t != null ? t : Date.now();
   if (a.status === 'done' && !Number.isFinite(p.progress)) a.progress = 100;
   a.progress = clamp(a.progress, 0, 100);
   if (ACTIVE.has(a.status) && !wasActive && t != null && a.since == null) a.since = t;
@@ -418,6 +424,7 @@ function pushEvent(e) { S.events.push(e); if (S.events.length > MAX_EVENTS) S.ev
 function receive(f, live) {
   const evs = ingest(f, live);
   if (!evs) return;
+  if (current) for (const b of beatDocs) applyBeat(b, false); // beats that beat the spawn flush here
   const stick = logAtBottom();
   for (const e of evs) { pushEvent(e); logRow(e, live); }
   renderAll();
@@ -429,6 +436,7 @@ function loadHistory(docs) {
   reset();
   mergeRunMeta(currentMeta);
   for (const f of docs) { const evs = ingest(f, false); if (evs) for (const e of evs) pushEvent(e); }
+  if (current) reapplyBeats();
   for (const e of S.events.slice(-MAX_LOG)) logRow(e, false);
   renderAll();
   logEl.scrollTop = logEl.scrollHeight;
@@ -518,15 +526,12 @@ function updateCard(a) {
   n.querySelector('.c-name').textContent = a.role === 'lead' ? `${a.model || a.name} · ${a.name}` : a.name;
   n.querySelector('.c-model').textContent = a.role === 'lead' ? '' : a.model;
   n.querySelector('.c-task').textContent = a.task || ' ';
-  const indet = ACTIVE.has(a.status) && a.progress <= 0;
-  n.querySelector('.bar').classList.toggle('indet', indet && !reduced);
-  n.querySelector('.bar>i').style.width = a.progress + '%';
-  n.querySelector('.c-pct').textContent = indet ? '…' : Math.round(a.progress) + '%';
+  const pr = paintProgress(a, n);
   n.querySelector('.c-now-t').textContent = a.now || (a.status === 'done' ? '완료' : '…');
   n.querySelector('.pill-t').textContent = ST_KO[a.status];
   n.querySelector('.c-stats').textContent = `${fmtK(a.tokens)} tok · ${a.tools} tools`;
   n.querySelector('.c-time').textContent = elapsedOf(a);
-  n.setAttribute('aria-label', `${a.name}, ${ST_KO[a.status]}, ${Math.round(a.progress)}%`);
+  n.setAttribute('aria-label', `${a.name}, ${ST_KO[a.status]}, ${Math.round(pr.pct)}%`);
 }
 function updateAdv(a, n) {
   n.querySelector('.adv-h b').textContent = a.model || a.name;
@@ -545,6 +550,23 @@ function elapsedOf(a) {
   if (a.since == null) return '';
   const end = a.until != null ? a.until : (ACTIVE.has(a.status) ? Date.now() : null);
   return end == null ? '' : fmtDur(end - a.since);
+}
+/* Progress comes only from reports: lead flushes and the agents' own periodic beats.
+   No time-based guessing; until the first report the bar is indeterminate. */
+function progressOf(a) {
+  const known = !ACTIVE.has(a.status) || a.progress > 0;
+  return { pct: a.progress, known };
+}
+function paintProgress(a, n) {
+  const pr = progressOf(a), indet = !pr.known;
+  const bar = n.querySelector('.bar');
+  bar.classList.toggle('indet', indet && !reduced);
+  n.querySelector('.bar>i').style.width = (indet ? 0 : pr.pct) + '%';
+  const pct = n.querySelector('.c-pct');
+  pct.textContent = indet ? '…' : Math.round(pr.pct) + '%';
+  const ago = a.progAt != null && ACTIVE.has(a.status) ? Math.round((Date.now() - a.progAt) / 1000) : null;
+  pct.title = indet ? '아직 진행률 보고 전' : ago != null ? `${ago}초 전 보고` : '';
+  return pr;
 }
 function updateBands() {
   for (const { b, h } of bandEls) {
@@ -802,7 +824,7 @@ function renderAgents() {
     const pill = el('span', 'pill'); pill.append(el('i'), el('span', null, ST_KO[a.status])); h.append(pill);
     const back = el('button', 'det-back', '전체 목록'); back.type = 'button'; back.onclick = () => select(null); h.append(back);
     const kv = el('dl', 'kv'); const parent = S.agents.get(a.parent);
-    for (const [k, v] of [['역할', a.role], ['모델', a.model || '—'], ['팀', a.team || '—'], ['상위', parent ? parent.name : '—'], ['진행률', ACTIVE.has(a.status) && a.progress <= 0 ? '보고 전' : Math.round(a.progress) + '%'], ['경과', elapsedOf(a) || '—'], ['토큰', fmtK(a.tokens)], ['도구 호출', a.tools]]) kv.append(el('dt', null, k), el('dd', null, v));
+    for (const [k, v] of [['역할', a.role], ['모델', a.model || '—'], ['팀', a.team || '—'], ['상위', parent ? parent.name : '—'], ['진행률', (() => { const pr = progressOf(a); return !pr.known ? '보고 전' : Math.round(pr.pct) + '%' + (a.progAt != null && ACTIVE.has(a.status) ? ` (${fmtDur(Date.now() - a.progAt)} 전 보고)` : ''); })()], ['경과', elapsedOf(a) || '—'], ['토큰', fmtK(a.tokens)], ['도구 호출', a.tools]]) kv.append(el('dt', null, k), el('dd', null, v));
     d.append(h, kv, el('div', 'det-sec', '맡은 일'), el('p', 'det-txt', a.task || '—'), el('div', 'det-sec', '지금'), el('p', 'det-txt', a.now || '—'), el('div', 'det-sec', '최근 통신'));
     const evs = S.events.filter(e => e.from === a.id || e.to === a.id).slice(-12).reverse();
     if (!evs.length) d.append(el('p', 'det-txt', '아직 없음'));
@@ -907,7 +929,11 @@ function tickTime() {
 function lastEventTime() { for (let i = S.events.length - 1; i >= 0; i--) if (S.events[i].t) return S.events[i].t; return Date.now(); }
 setInterval(() => {
   tickTime();
-  for (const a of S.agents.values()) if (ACTIVE.has(a.status) && a.since != null) { const n = els.get(a.id); const t = n && n.querySelector('.c-time'); if (t) t.textContent = elapsedOf(a); }
+  for (const a of S.agents.values()) if (ACTIVE.has(a.status) && a.since != null) {
+    const n = els.get(a.id); if (!n || n.classList.contains('adv')) continue;
+    const t = n.querySelector('.c-time'); if (t) t.textContent = elapsedOf(a);
+    if (n.querySelector('.bar')) paintProgress(a, n);
+  }
 }, 1000);
 function renderCounts() { $('#c-res').textContent = S.results.size; $('#c-ag').textContent = S.agents.size; $('#c-log').textContent = S.events.length; }
 function renderAll() { renderBoard(); renderHeader(); renderLegend(); renderResults(); renderAgents(); renderCounts(); renderStatusline(); renderTimeline(); }
@@ -943,7 +969,10 @@ async function runDemo() {
   if (demoOn && g === demoGen) runDemo();
 }
 
-let db = null, runs = [], current = null, currentMeta = {}, chosen = null, unsubFlush = null, flushTimer = null;
+let db = null, runs = [], current = null, currentMeta = {}, chosen = null, unsubFlush = null, unsubBeat = null, flushTimer = null;
+const beatN = new Map(); // agent id -> highest beat n applied
+let beatDocs = [];        // latest beats snapshot, re-applied after state rebuilds
+function reapplyBeats() { beatN.clear(); for (const b of beatDocs) applyBeat(b, false); }
 const runSel = $('#run-select');
 function hashRun() { const h = decodeURIComponent((location.hash || '').slice(1)); return /^[A-Za-z0-9-]{1,120}$/.test(h) ? h : null; }
 chosen = hashRun();
@@ -970,6 +999,8 @@ function mergeRunMeta(m) {
 function openRun(id, meta) {
   stopDemo();
   if (unsubFlush) { unsubFlush(); unsubFlush = null; }
+  if (unsubBeat) { unsubBeat(); unsubBeat = null; }
+  beatN.clear(); beatDocs = [];
   clearTimeout(flushTimer);
   current = id; currentMeta = meta || {};
   reset();
@@ -991,6 +1022,31 @@ function openRun(id, meta) {
     const added = snap.docChanges().filter(c => c.type === 'added').map(c => c.doc.data()).filter(Boolean).sort(bySeq);
     for (const f of added) receive(f, true);
   }, (err) => { clearTimeout(flushTimer); if (current === id) setSource('live', `실행 기록을 읽지 못했습니다 (${err && err.code}). 페이지를 다시 열어 주세요.`); });
+  // Periodic self-reports written by the agents themselves (append-only, one doc per beat).
+  unsubBeat = db.collection('runs/' + id + '/beats').orderBy('at', 'desc').limit(MAX_FLUSHES).onSnapshot((snap) => {
+    if (current !== id) return;
+    beatDocs = snap.docs.filter(d => d.exists).map(d => d.data()).filter(Boolean).sort((a, b) => (a.n || 0) - (b.n || 0));
+    let changed = false;
+    for (const b of beatDocs) changed = applyBeat(b, true) || changed;
+    if (changed) renderAll();
+  }, () => {});
+}
+/* A beat updates only an agent the lead already registered, only forward (n increases),
+   and never reopens an agent the lead marked done/error. */
+function applyBeat(b, anim) {
+  if (!b || typeof b.agent !== 'string' || !Number.isFinite(b.n)) return false;
+  const a = S.agents.get(b.agent);
+  if (!a || a.status === 'done' || a.status === 'error') return false;
+  if (b.n <= (beatN.get(b.agent) || 0)) return false;
+  beatN.set(b.agent, b.n);
+  if (Number.isFinite(b.progress)) { a.progress = clamp(b.progress, 0, 99); a.progAt = Number.isFinite(b.at) ? b.at : Date.now(); }
+  if (typeof b.now === 'string') a.now = b.now.slice(0, 60);
+  if (Number.isFinite(b.tools)) a.tools = Math.max(a.tools, b.tools);
+  if (Number.isFinite(b.tokens)) a.tokens = Math.max(a.tokens, b.tokens);
+  if (a.status === 'queued') a.status = 'working';
+  if (a.since == null) a.since = Number.isFinite(b.at) ? b.at : Date.now();
+  const n = anim && els.get(a.id); if (n && !reduced) { n.classList.remove('hit'); void n.offsetWidth; n.classList.add('hit'); }
+  return true;
 }
 async function connect() {
   if (!window.claude || typeof window.claude.use !== 'function') return;
